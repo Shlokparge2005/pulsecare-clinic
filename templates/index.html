@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PulseCare | Clinic Appointment, Patient & Emergency Management Hub</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              900: '#0c4a6e',
+            },
+            emergency: {
+              50: '#fef2f2',
+              100: '#fee2e2',
+              500: '#ef4444',
+              600: '#dc2626',
+              700: '#b91c1c',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts & Custom CSS -->
+  <link rel="stylesheet" href="/static/css/style.css">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Leaflet Map JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- SweetAlert2 for Toast & Modals -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 flex flex-col">
+
+  <!-- Top Disclaimer Notice Bar -->
+  <div class="bg-amber-500 text-slate-900 px-4 py-1.5 text-xs md:text-sm font-semibold flex items-center justify-between shadow-sm">
+    <div class="flex items-center gap-2 max-w-6xl mx-auto text-center md:text-left">
+      <i class="fa-solid fa-triangle-exclamation text-amber-950"></i>
+      <span><strong>Administrative & Emergency Coordination Scope:</strong> PulseCare organizes clinic appointments, patient files, ambulance dispatch, and blood coordination. It does <em>not</em> provide medical diagnosis or treatment recommendations.</span>
+    </div>
+    <div class="hidden lg:flex items-center gap-4 text-xs font-mono">
+      <span id="live-clock"><i class="fa-regular fa-clock mr-1"></i>--:--:--</span>
+    </div>
+  </div>
+
+  <!-- Primary Header & Quick Emergency Bar -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        
+        <!-- Brand Logo & Name -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-sky-500/20">
+            <i class="fa-solid fa-heart-pulse text-xl"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xl font-bold tracking-tight text-slate-900">PulseCare</span>
+              <span class="bg-sky-100 text-sky-700 text-xs px-2 py-0.5 rounded-full font-medium">Clinic & Emergency Hub</span>
+            </div>
+            <p class="text-xs text-slate-500 hidden sm:block">Primary Care Clinic & Integrated Emergency Dispatch</p>
+          </div>
+        </div>
+
+        <!-- Emergency Hotlines & SOS Panic Button -->
+        <div class="flex items-center gap-2 sm:gap-4">
+          <div class="hidden md:flex items-center gap-3 text-xs">
+            <a href="tel:108" class="flex items-center gap-1.5 bg-red-50 text-red-700 px-2.5 py-1.5 rounded-lg border border-red-200 font-semibold hover:bg-red-100 transition">
+              <i class="fa-solid fa-truck-medical text-red-600"></i> Amb: <strong>108</strong>
+            </a>
+            <a href="tel:112" class="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1.5 rounded-lg border border-slate-200 font-semibold hover:bg-slate-200 transition">
+              <i class="fa-solid fa-phone text-slate-600"></i> SOS: <strong>112</strong>
+            </a>
+            <div class="text-right border-l pl-3 border-slate-200">
+              <span class="text-slate-400 block text-[10px]">Clinic Helpline</span>
+              <span class="font-bold text-slate-700">+91 80 4099 1100</span>
+            </div>
+          </div>
+
+          <!-- Rapid SOS Trigger Button -->
+          <button onclick="openModal('emergency-sos-modal')" class="bg-red-600 hover:bg-red-700 text-white px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 shadow-lg shadow-red-500/30 pulse-emergency transition">
+            <i class="fa-solid fa-bell animate-bounce"></i>
+            <span>RAPID SOS</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex space-x-1 overflow-x-auto py-2 border-t border-slate-100 scrollbar-none" id="main-nav">
+        <button onclick="switchTab('dashboard')" id="tab-btn-dashboard" class="nav-tab active px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-2 whitespace-nowrap">
+          <i class="fa-solid fa-chart-pie"></i> Dashboard
+        </button>
+        <button onclick="switchTab('appointments')" id="tab-btn-appointments" class="nav-tab text-slate-600 hover:bg-slate-100 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-2 whitespace-nowrap">
+          <i class="fa-solid fa-calendar-check"></i> Appointments & Queue
+          <span id="badge-waiting-count" class="bg-amber-100 text-amber-800 text-[10px] px-1.5 py-0.5 rounded-full font-mono">0</span>
+        </button>
+        <button onclick="switchTab('patients')" id="tab-btn-patients" class="nav-tab text-slate-600 hover:bg-slate-100 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-2 whitespace-nowrap">
+          <i class="fa-solid fa-hospital-user"></i> Patients & Records
+        </button>
+        <button onclick="switchTab('ambulances')" id="tab-btn-ambulances" class="nav-tab text-slate-600 hover:bg-slate-100 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-2 whitespace-nowrap">
+          <i class="fa-solid fa-truck-medical"></i> Ambulance Dispatch
+          <span id="badge-amb-active" class="bg-red-100 text-red-700 text-[10px] px-1.5 py-0.5 rounded-full font-mono">0</span>
+        </button>
+        <button onclick="switchTab('blood')" id="tab-btn-blood" class="nav-tab text-slate-600 hover:bg-slate-100 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-2 whitespace-nowrap">
+          <i class="fa-solid fa-droplet text-red-500"></i> Blood Bank & SOS
+          <span id="badge-blood-urgent" class="bg-red-100 text-red-700 text-[10px] px-1.5 py-0.5 rounded-full font-mono">0</span>
+        </button>
+        <button onclick="switchTab('facilities')" id="tab-btn-facilities" class="nav-tab text-slate-600 hover:bg-slate-100 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-2 whitespace-nowrap">
+          <i class="fa-solid fa-square-h"></i> Nearby Facilities
+        </button>
+        <button onclick="switchTab('reminders')" id="tab-btn-reminders" class="nav-tab text-slate-600 hover:bg-slate-100 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-2 whitespace-nowrap">
+          <i class="fa-solid fa-bell"></i> Reminders (WhatsApp)
+          <span id="badge-pending-reminders" class="bg-emerald-100 text-emerald-800 text-[10px] px-1.5 py-0.5 rounded-full font-mono">0</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Application Body -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- Active Emergency Banner (if any) -->
+    <div id="active-alert-banner" class="hidden mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl shadow-xs">
+      <div class="flex items-start justify-between">
+        <div class="flex items-start gap-3">
+          <i class="fa-solid fa-triangle-exclamation text-red-600 text-lg mt-0.5"></i>
+          <div>
+            <h4 id="alert-banner-title" class="text-sm font-bold text-red-800">Critical Emergency Alert</h4>
+            <p id="alert-banner-msg" class="text-xs text-red-700 mt-0.5">Alert details will appear here.</p>
+          </div>
+        </div>
+        <button onclick="dismissAlertBanner()" class="text-red-400 hover:text-red-600 text-sm">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 1: DASHBOARD & CLINIC STATS                                           -->
+    <!-- ========================================================================= -->
+    <section id="section-dashboard" class="space-y-6">
+      
+      <!-- Quick Action Floating Bar -->
+      <div class="bg-white p-4 rounded-2xl shadow-xs border border-slate-200 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2 text-sm font-semibold text-slate-700">
+          <i class="fa-solid fa-bolt text-amber-500"></i>
+          <span>Clinic Quick Actions:</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="openModal('book-appointment-modal')" class="bg-sky-600 hover:bg-sky-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm transition">
+            <i class="fa-solid fa-calendar-plus"></i> Book Appointment
+          </button>
+          <button onclick="openModal('register-patient-modal')" class="bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm transition">
+            <i class="fa-solid fa-user-plus"></i> New Patient
+          </button>
+          <button onclick="openModal('request-ambulance-modal')" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm transition">
+            <i class="fa-solid fa-truck-medical"></i> Dispatch Ambulance
+          </button>
+          <button onclick="openModal('blood-request-modal')" class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm transition">
+            <i class="fa-solid fa-droplet"></i> Post Blood SOS
+          </button>
+          <div class="border-l border-slate-200 pl-2 flex gap-1">
+            <a href="/api/export/appointments.csv" download class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 transition" title="Export Appointments CSV">
+              <i class="fa-solid fa-file-csv text-emerald-600"></i> Export APT
+            </a>
+            <a href="/api/export/patients.csv" download class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 transition" title="Export Patients CSV">
+              <i class="fa-solid fa-file-csv text-blue-600"></i> Export PT
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI Stat Cards Grid -->
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs metric-card">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-slate-500">Today's Visits</span>
+            <div class="w-8 h-8 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center text-sm">
+              <i class="fa-solid fa-calendar-day"></i>
+            </div>
+          </div>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span id="stat-today-total" class="text-2xl font-bold text-slate-900 font-mono-code">0</span>
+            <span class="text-[10px] text-emerald-600 font-semibold" id="stat-completed-today">0 done</span>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs metric-card">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-slate-500">In Waiting Room</span>
+            <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-sm">
+              <i class="fa-solid fa-clock-rotate-left"></i>
+            </div>
+          </div>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span id="stat-waiting-count" class="text-2xl font-bold text-amber-600 font-mono-code">0</span>
+            <span class="text-[10px] text-slate-400">Tokens pending</span>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs metric-card">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-slate-500">In-Consultation</span>
+            <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-sm">
+              <i class="fa-solid fa-user-doctor"></i>
+            </div>
+          </div>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span id="stat-in-consult-count" class="text-2xl font-bold text-emerald-600 font-mono-code">0</span>
+            <span class="text-[10px] text-emerald-600 font-semibold">Active now</span>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs metric-card">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-slate-500">Ambulance Fleet</span>
+            <div class="w-8 h-8 rounded-lg bg-red-100 text-red-600 flex items-center justify-center text-sm">
+              <i class="fa-solid fa-truck-medical"></i>
+            </div>
+          </div>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span id="stat-available-amb" class="text-2xl font-bold text-slate-900 font-mono-code">0</span>
+            <span class="text-[10px] text-slate-500">/ <span id="stat-total-amb">0</span> ready</span>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs metric-card">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-slate-500">Blood SOS</span>
+            <div class="w-8 h-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center text-sm">
+              <i class="fa-solid fa-droplet"></i>
+            </div>
+          </div>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span id="stat-urgent-blood" class="text-2xl font-bold text-rose-600 font-mono-code">0</span>
+            <span class="text-[10px] text-rose-500 font-semibold">Critical calls</span>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs metric-card">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-slate-500">Total Patients</span>
+            <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm">
+              <i class="fa-solid fa-users"></i>
+            </div>
+          </div>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span id="stat-total-patients" class="text-2xl font-bold text-slate-900 font-mono-code">0</span>
+            <span class="text-[10px] text-indigo-600 font-semibold">Registered</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Main Dashboard Grid (Queue Widget + Analytics Charts) -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Live Waiting Room Queue Board Widget -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div class="flex items-center gap-2">
+              <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
+              <h3 class="font-bold text-slate-900 text-sm">Live Clinic Token Board</h3>
+            </div>
+            <button onclick="loadLiveQueue()" class="text-xs text-sky-600 hover:text-sky-700 font-medium">
+              <i class="fa-solid fa-rotate-right mr-1"></i> Refresh
+            </button>
+          </div>
+
+          <div class="mt-4 flex-1 overflow-y-auto space-y-3 max-h-[380px] pr-1" id="dashboard-queue-list">
+            <div class="text-center text-xs text-slate-400 py-8">Loading live queue...</div>
+          </div>
+
+          <div class="pt-3 border-t border-slate-100 mt-4 flex items-center justify-between text-xs text-slate-500">
+            <span>Tokens are assigned chronologically.</span>
+            <button onclick="switchTab('appointments')" class="text-sky-600 font-semibold hover:underline">Manage All &rarr;</button>
+          </div>
+        </div>
+
+        <!-- Clinic Specialty & Volume Charts -->
+        <div class="lg:col-span-2 space-y-6">
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Specialty Breakdown Chart -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+              <h3 class="font-bold text-slate-900 text-sm mb-3 flex items-center gap-2">
+                <i class="fa-solid fa-stethoscope text-sky-600"></i> Appointments by Specialty
+              </h3>
+              <div class="h-56 relative">
+                <canvas id="specialtyChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Weekly Trend Chart -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+              <h3 class="font-bold text-slate-900 text-sm mb-3 flex items-center gap-2">
+                <i class="fa-solid fa-chart-line text-emerald-600"></i> 7-Day Patient Load Trend
+              </h3>
+              <div class="h-56 relative">
+                <canvas id="trendChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Regional Blood Stock Quick Matrix -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <i class="fa-solid fa-droplet text-red-500"></i> Real-Time Regional Blood Availability (Units)
+              </h3>
+              <button onclick="switchTab('blood')" class="text-xs text-red-600 font-semibold hover:underline">
+                View Blood Banks &rarr;
+              </button>
+            </div>
+            <div class="grid grid-cols-4 sm:grid-cols-8 gap-2" id="dashboard-blood-matrix">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 2: APPOINTMENTS & SCHEDULING MANAGEMENT                               -->
+    <!-- ========================================================================= -->
+    <section id="section-appointments" class="hidden space-y-6">
+      
+      <!-- Appointment Header & Filters -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        
+        <div class="flex flex-wrap items-center gap-3">
+          <!-- Date Filter -->
+          <div class="flex items-center gap-2">
+            <label class="text-xs font-semibold text-slate-600">Date:</label>
+            <select id="filter-apt-date-select" onchange="filterAppointments()" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-sky-500">
+              <option value="today" selected>Today</option>
+              <option value="tomorrow">Tomorrow</option>
+              <option value="all">All Dates</option>
+            </select>
+          </div>
+
+          <!-- Status Filter -->
+          <div class="flex items-center gap-2">
+            <label class="text-xs font-semibold text-slate-600">Status:</label>
+            <select id="filter-apt-status" onchange="filterAppointments()" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-sky-500">
+              <option value="all">All Statuses</option>
+              <option value="Scheduled">Scheduled</option>
+              <option value="Waiting">Waiting</option>
+              <option value="In-Consultation">In-Consultation</option>
+              <option value="Completed">Completed</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </div>
+
+          <!-- Doctor Filter -->
+          <div class="flex items-center gap-2">
+            <label class="text-xs font-semibold text-slate-600">Doctor:</label>
+            <select id="filter-apt-doctor" onchange="filterAppointments()" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-sky-500">
+              <option value="all">All Doctors</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button onclick="openModal('book-appointment-modal')" class="bg-sky-600 hover:bg-sky-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition">
+            <i class="fa-solid fa-plus"></i> Schedule New Appointment
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Appointments List / Table -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
+              <tr>
+                <th class="px-4 py-3">Token & Code</th>
+                <th class="px-4 py-3">Patient</th>
+                <th class="px-4 py-3">Doctor & Room</th>
+                <th class="px-4 py-3">Date & Time Slot</th>
+                <th class="px-4 py-3">Visit Type</th>
+                <th class="px-4 py-3">Status</th>
+                <th class="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="appointments-table-body" class="divide-y divide-slate-100">
+              <tr>
+                <td colspan="7" class="text-center py-8 text-slate-400">Loading appointments...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 3: PATIENT MANAGEMENT & VISIT HISTORY                                 -->
+    <!-- ========================================================================= -->
+    <section id="section-patients" class="hidden space-y-6">
+      
+      <!-- Patient Search & Header Actions -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex-1 max-w-md relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-xs"></i>
+          <input type="text" id="patient-search-input" onkeyup="searchPatients()" placeholder="Search patient by name, phone, or code (e.g. PT-2026-001)..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+        </div>
+
+        <div class="flex items-center gap-3">
+          <select id="patient-blood-filter" onchange="searchPatients()" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-2 focus:ring-2 focus:ring-sky-500">
+            <option value="">All Blood Groups</option>
+            <option value="A+">A+</option>
+            <option value="A-">A-</option>
+            <option value="B+">B+</option>
+            <option value="B-">B-</option>
+            <option value="AB+">AB+</option>
+            <option value="AB-">AB-</option>
+            <option value="O+">O+</option>
+            <option value="O-">O-</option>
+          </select>
+
+          <button onclick="openModal('register-patient-modal')" class="bg-sky-600 hover:bg-sky-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition">
+            <i class="fa-solid fa-user-plus"></i> Register Patient
+          </button>
+        </div>
+      </div>
+
+      <!-- Patients Grid / Table -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="patients-cards-container">
+        <!-- Dynamically populated patient cards -->
+      </div>
+
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 4: AMBULANCE EMERGENCY DISPATCH                                       -->
+    <!-- ========================================================================= -->
+    <section id="section-ambulances" class="hidden space-y-6">
+      
+      <!-- Top Action bar & Urgency Notice -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+            <i class="fa-solid fa-truck-medical text-red-600"></i> Ambulance Fleet & Real-Time Emergency Coordination
+          </h3>
+          <p class="text-xs text-slate-500 mt-0.5">Live GPS tracking of clinic & partner ambulances for rapid emergency dispatch.</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <button onclick="openModal('request-ambulance-modal')" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md shadow-red-500/20 transition">
+            <i class="fa-solid fa-plus-circle"></i> Dispatch Ambulance SOS
+          </button>
+        </div>
+      </div>
+
+      <!-- Interactive Leaflet Map for Ambulances & Hospitals -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-3 text-xs font-semibold">
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-blue-600 inline-block"></span> Clinic Hub</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span> Available Ambulance</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-red-600 inline-block"></span> Dispatched Ambulance</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-purple-600 inline-block"></span> Tertiary Hospitals</span>
+          </div>
+          <span class="text-xs text-slate-400">Click any pin for vehicle contact & status</span>
+        </div>
+        <div id="emergency-map"></div>
+      </div>
+
+      <!-- Active Ambulance Requests -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+          <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+            <i class="fa-solid fa-list-check text-sky-600"></i> Active Ambulance Dispatch Requests
+          </h4>
+          <span class="text-xs text-slate-500" id="ambulance-requests-count">0 active requests</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
+              <tr>
+                <th class="px-4 py-3">Code & Urgency</th>
+                <th class="px-4 py-3">Caller & Patient</th>
+                <th class="px-4 py-3">Pickup Address</th>
+                <th class="px-4 py-3">Destination Facility</th>
+                <th class="px-4 py-3">Assigned Vehicle</th>
+                <th class="px-4 py-3">Status</th>
+                <th class="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="ambulance-requests-tbody" class="divide-y divide-slate-100">
+              <tr>
+                <td colspan="7" class="text-center py-6 text-slate-400">Loading requests...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Ambulance Fleet Status Grid -->
+      <div>
+        <h4 class="font-bold text-slate-900 text-sm mb-3">Ambulance Fleet Status & Equipment</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="ambulance-fleet-container">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 5: BLOOD BANK & SOS REQUIREMENTS                                      -->
+    <!-- ========================================================================= -->
+    <section id="section-blood" class="hidden space-y-6">
+      
+      <!-- Top Action & Search Bar -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+            <i class="fa-solid fa-droplet text-red-600"></i> Blood Bank Directory & Emergency SOS Coordination
+          </h3>
+          <p class="text-xs text-slate-500 mt-0.5">Locate available blood units across regional blood banks and report emergency requirements.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="openModal('blood-donor-modal')" class="bg-slate-800 hover:bg-slate-900 text-white px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-hand-holding-heart text-rose-400"></i> Voluntary Donor
+          </button>
+          <button onclick="openModal('blood-request-modal')" class="bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition">
+            <i class="fa-solid fa-plus-circle"></i> Post Blood Requirement
+          </button>
+        </div>
+      </div>
+
+      <!-- Interactive Blood Type Finder Bar -->
+      <div class="bg-gradient-to-r from-rose-50 to-red-50 p-5 rounded-2xl border border-rose-200">
+        <h4 class="font-bold text-rose-900 text-xs uppercase tracking-wider mb-2">Search Blood Availability by Group:</h4>
+        <div class="flex flex-wrap gap-2" id="blood-group-filter-buttons">
+          <button onclick="searchBloodStock('A+')" class="blood-btn px-4 py-2 rounded-xl bg-white border border-rose-200 text-rose-800 font-bold text-sm hover:bg-rose-600 hover:text-white transition shadow-2xs">A+</button>
+          <button onclick="searchBloodStock('A-')" class="blood-btn px-4 py-2 rounded-xl bg-white border border-rose-200 text-rose-800 font-bold text-sm hover:bg-rose-600 hover:text-white transition shadow-2xs">A-</button>
+          <button onclick="searchBloodStock('B+')" class="blood-btn px-4 py-2 rounded-xl bg-white border border-rose-200 text-rose-800 font-bold text-sm hover:bg-rose-600 hover:text-white transition shadow-2xs">B+</button>
+          <button onclick="searchBloodStock('B-')" class="blood-btn px-4 py-2 rounded-xl bg-white border border-rose-200 text-rose-800 font-bold text-sm hover:bg-rose-600 hover:text-white transition shadow-2xs">B-</button>
+          <button onclick="searchBloodStock('AB+')" class="blood-btn px-4 py-2 rounded-xl bg-white border border-rose-200 text-rose-800 font-bold text-sm hover:bg-rose-600 hover:text-white transition shadow-2xs">AB+</button>
+          <button onclick="searchBloodStock('AB-')" class="blood-btn px-4 py-2 rounded-xl bg-white border border-rose-200 text-rose-800 font-bold text-sm hover:bg-rose-600 hover:text-white transition shadow-2xs">AB-</button>
+          <button onclick="searchBloodStock('O+')" class="blood-btn px-4 py-2 rounded-xl bg-white border border-rose-200 text-rose-800 font-bold text-sm hover:bg-rose-600 hover:text-white transition shadow-2xs">O+</button>
+          <button onclick="searchBloodStock('O-')" class="blood-btn px-4 py-2 rounded-xl bg-white border border-rose-200 text-rose-800 font-bold text-sm hover:bg-rose-600 hover:text-white transition shadow-2xs">O-</button>
+          <button onclick="loadBloodBanks()" class="px-4 py-2 rounded-xl bg-slate-800 text-white font-bold text-xs hover:bg-slate-900 transition">Show All Banks</button>
+        </div>
+      </div>
+
+      <!-- Active Blood Emergency SOS Demands -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+          <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation text-rose-600"></i> Active Emergency Blood Requirements
+          </h4>
+          <span class="text-xs text-rose-600 font-semibold" id="blood-requests-active-count">0 pending calls</span>
+        </div>
+        <div class="divide-y divide-slate-100" id="blood-sos-demands-container">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Blood Banks Directory Cards -->
+      <div>
+        <h4 class="font-bold text-slate-900 text-sm mb-3">Registered Blood Banks & Stock Levels</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="blood-banks-grid">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Voluntary Blood Donors Directory -->
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+        <div class="flex items-center justify-between mb-4">
+          <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+            <i class="fa-solid fa-users-line text-emerald-600"></i> Voluntary Blood Donors Network
+          </h4>
+          <span class="text-xs text-slate-500">Contact volunteers for direct replacement donation</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3" id="blood-donors-grid">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 6: NEARBY HEALTHCARE FACILITIES                                       -->
+    <!-- ========================================================================= -->
+    <section id="section-facilities" class="hidden space-y-6">
+      
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+            <i class="fa-solid fa-square-h text-sky-600"></i> Nearby Healthcare & Emergency Facilities Directory
+          </h3>
+          <p class="text-xs text-slate-500 mt-0.5">Emergency referral hospitals, trauma centers, ICU availability, and 24/7 pharmacies.</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <select id="facility-type-filter" onchange="loadFacilities()" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-sky-500">
+            <option value="all">All Facility Types</option>
+            <option value="Hospital">Hospitals & Trauma Centers</option>
+            <option value="Pharmacy">24/7 Pharmacies</option>
+            <option value="Diagnostic">Diagnostic & Imaging Labs</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="facilities-grid">
+        <!-- Dynamically populated -->
+      </div>
+
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 7: FOLLOW-UP REMINDERS (WHATSAPP/SMS)                                 -->
+    <!-- ========================================================================= -->
+    <section id="section-reminders" class="hidden space-y-6">
+      
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+            <i class="fa-solid fa-bell text-amber-500"></i> Patient Follow-Up Reminders & WhatsApp Trigger
+          </h3>
+          <p class="text-xs text-slate-500 mt-0.5">Automated review dates and 1-click WhatsApp messaging for continuity of care.</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <select id="reminder-status-filter" onchange="loadReminders()" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-sky-500">
+            <option value="all">All Reminders</option>
+            <option value="Pending" selected>Pending Reviews</option>
+            <option value="Sent">Dispatched / Sent</option>
+          </select>
+          <button onclick="openModal('create-reminder-modal')" class="bg-sky-600 hover:bg-sky-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-plus"></i> New Reminder
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
+              <tr>
+                <th class="px-4 py-3">Patient Code & Name</th>
+                <th class="px-4 py-3">Phone</th>
+                <th class="px-4 py-3">Follow-up Due Date</th>
+                <th class="px-4 py-3">Clinical Review Reason</th>
+                <th class="px-4 py-3">Status</th>
+                <th class="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="reminders-table-body" class="divide-y divide-slate-100">
+              <tr>
+                <td colspan="6" class="text-center py-8 text-slate-400">Loading reminders...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-4 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+      <div class="flex items-center gap-2">
+        <span class="font-bold text-slate-700">PulseCare Management Platform</span>
+        <span>&bull;</span>
+        <span>Version 1.0.0</span>
+      </div>
+      <div>
+        <span>Designed for Google Cloud Run Deployment & Small Healthcare Facilities</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ========================================================================= -->
+  <!-- MODALS CONTAINER                                                          -->
+  <!-- ========================================================================= -->
+
+  <!-- 1. RAPID EMERGENCY SOS MODAL -->
+  <div id="emergency-sos-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border-2 border-red-500 animate-in fade-in zoom-in duration-150">
+      <div class="flex items-center justify-between pb-3 border-b border-red-100">
+        <div class="flex items-center gap-2 text-red-600">
+          <i class="fa-solid fa-triangle-exclamation text-xl animate-bounce"></i>
+          <h3 class="font-bold text-base text-slate-900">Rapid Emergency SOS Triage</h3>
+        </div>
+        <button onclick="closeModal('emergency-sos-modal')" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <p class="text-xs text-slate-500 mt-2">Dispatches the nearest ambulance immediately and broadcasts a high-priority emergency alert to medical staff.</p>
+
+      <form onsubmit="handleEmergencySOS(event)" class="mt-4 space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Patient Name / Caller <span class="text-red-500">*</span></label>
+          <input type="text" id="sos-patient-name" required placeholder="e.g. Ramesh Hegde" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Contact Phone Number <span class="text-red-500">*</span></label>
+          <input type="text" id="sos-caller-phone" required placeholder="+91 98765 43210" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Exact Pickup Location & Landmark <span class="text-red-500">*</span></label>
+          <textarea id="sos-pickup-address" rows="2" required placeholder="Street address, building name, apartment #..." class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500"></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Emergency Nature</label>
+            <select id="sos-emergency-type" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500">
+              <option value="Cardiac / Chest Pain">Cardiac / Chest Pain</option>
+              <option value="Road Accident / Trauma">Road Accident / Trauma</option>
+              <option value="Severe Respiratory Distress">Severe Respiratory Distress</option>
+              <option value="Unconscious / Stroke">Unconscious / Stroke</option>
+              <option value="Obstetric Emergency">Obstetric Emergency</option>
+              <option value="General Critical">General Critical</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Destination Facility</label>
+            <select id="sos-destination" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500">
+              <option value="PulseCare Specialty Clinic & Daycare">PulseCare Specialty Clinic</option>
+              <option value="Manipal Hospital (Old Airport Road)" selected>Manipal Hospital (Old Airport Rd)</option>
+              <option value="St. John's Medical College Hospital">St. John's Medical College</option>
+              <option value="Bowring & Lady Curzon Hospital">Bowring & Lady Curzon</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="pt-3 flex gap-2">
+          <button type="button" onclick="closeModal('emergency-sos-modal')" class="flex-1 py-2 rounded-xl text-xs font-semibold border border-slate-300 text-slate-600 hover:bg-slate-100">Cancel</button>
+          <button type="submit" class="flex-1 py-2 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/30">
+            <i class="fa-solid fa-paper-plane mr-1"></i> INITIATE SOS DISPATCH
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. BOOK APPOINTMENT MODAL -->
+  <div id="book-appointment-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-calendar-plus text-sky-600"></i> Schedule Clinic Appointment
+        </h3>
+        <button onclick="closeModal('book-appointment-modal')" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form onsubmit="handleBookAppointment(event)" class="mt-4 space-y-3">
+        <!-- Patient Picker or New -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-xs font-semibold text-slate-700">Select Patient <span class="text-red-500">*</span></label>
+            <button type="button" onclick="openModal('register-patient-modal'); closeModal('book-appointment-modal')" class="text-[11px] text-sky-600 font-semibold hover:underline">+ New Patient</button>
+          </div>
+          <select id="apt-patient-id" required class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500">
+            <option value="">-- Choose Registered Patient --</option>
+          </select>
+        </div>
+
+        <!-- Doctor Picker -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Consulting Physician <span class="text-red-500">*</span></label>
+          <select id="apt-doctor-id" required class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500">
+            <option value="">-- Choose Doctor / Specialty --</option>
+          </select>
+        </div>
+
+        <!-- Date & Slot -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Date <span class="text-red-500">*</span></label>
+            <input type="date" id="apt-date" required class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Time Slot <span class="text-red-500">*</span></label>
+            <select id="apt-time-slot" required class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500">
+              <option value="09:00 AM - 09:30 AM">09:00 AM - 09:30 AM</option>
+              <option value="09:30 AM - 10:00 AM">09:30 AM - 10:00 AM</option>
+              <option value="10:00 AM - 10:30 AM">10:00 AM - 10:30 AM</option>
+              <option value="10:30 AM - 11:00 AM">10:30 AM - 11:00 AM</option>
+              <option value="11:00 AM - 11:30 AM">11:00 AM - 11:30 AM</option>
+              <option value="11:30 AM - 12:00 PM">11:30 AM - 12:00 PM</option>
+              <option value="02:00 PM - 02:30 PM">02:00 PM - 02:30 PM</option>
+              <option value="02:30 PM - 03:00 PM">02:30 PM - 03:00 PM</option>
+              <option value="03:00 PM - 03:30 PM">03:00 PM - 03:30 PM</option>
+              <option value="03:30 PM - 04:00 PM">03:30 PM - 04:00 PM</option>
+              <option value="04:00 PM - 04:30 PM">04:00 PM - 04:30 PM</option>
+              <option value="04:30 PM - 05:00 PM">04:30 PM - 05:00 PM</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Visit Type -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Visit Type</label>
+          <select id="apt-visit-type" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500">
+            <option value="General Consultation">General Consultation</option>
+            <option value="Follow-up">Follow-up Review</option>
+            <option value="Routine Checkup">Routine Health Checkup</option>
+            <option value="Vaccination">Vaccination</option>
+            <option value="Emergency Walk-in">Emergency Walk-in</option>
+          </select>
+        </div>
+
+        <!-- Chief Complaint / Reason -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Primary Reason / Symptoms</label>
+          <input type="text" id="apt-reason" placeholder="e.g. Mild headache and fever since 2 days" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Receptionist Administrative Notes</label>
+          <input type="text" id="apt-notes" placeholder="e.g. Wheelchair assistance required" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500">
+        </div>
+
+        <div class="pt-3 flex gap-2">
+          <button type="button" onclick="closeModal('book-appointment-modal')" class="flex-1 py-2 rounded-xl text-xs font-semibold border border-slate-300 text-slate-600 hover:bg-slate-100">Cancel</button>
+          <button type="submit" class="flex-1 py-2 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white shadow-md shadow-sky-500/20">
+            Confirm & Generate Token
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. REGISTER PATIENT MODAL -->
+  <div id="register-patient-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-user-plus text-sky-600"></i> Register New Patient
+        </h3>
+        <button onclick="closeModal('register-patient-modal')" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form onsubmit="handleRegisterPatient(event)" class="mt-4 space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Full Name <span class="text-red-500">*</span></label>
+            <input type="text" id="reg-name" required placeholder="e.g. Ananya Roy" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Contact Phone <span class="text-red-500">*</span></label>
+            <input type="text" id="reg-phone" required placeholder="+91 98765 00000" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Age</label>
+            <input type="number" id="reg-age" placeholder="e.g. 29" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Gender</label>
+            <select id="reg-gender" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500">
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Blood Group</label>
+            <select id="reg-blood" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500">
+              <option value="">Unknown</option>
+              <option value="A+">A+</option>
+              <option value="A-">A-</option>
+              <option value="B+">B+</option>
+              <option value="B-">B-</option>
+              <option value="AB+">AB+</option>
+              <option value="AB-">AB-</option>
+              <option value="O+">O+</option>
+              <option value="O-">O-</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Email Address</label>
+          <input type="email" id="reg-email" placeholder="patient@example.com" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Emergency Contact Person</label>
+            <input type="text" id="reg-emg-name" placeholder="e.g. S. Roy (Father)" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Emergency Contact Phone</label>
+            <input type="text" id="reg-emg-phone" placeholder="+91 98765 11111" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Residential Address</label>
+          <input type="text" id="reg-address" placeholder="Flat, Street, Locality..." class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Known Drug Allergies</label>
+            <input type="text" id="reg-allergies" placeholder="e.g. Penicillin, Sulfa" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Pre-existing Conditions</label>
+            <input type="text" id="reg-conditions" placeholder="e.g. Hypertension, Asthma" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Administrative / Clinical Notes</label>
+          <textarea id="reg-notes" rows="2" placeholder="Any special needs or historical clinic notes..." class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500"></textarea>
+        </div>
+
+        <div class="pt-3 flex gap-2">
+          <button type="button" onclick="closeModal('register-patient-modal')" class="flex-1 py-2 rounded-xl text-xs font-semibold border border-slate-300 text-slate-600 hover:bg-slate-100">Cancel</button>
+          <button type="submit" class="flex-1 py-2 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white shadow-md shadow-sky-500/20">
+            Register & Save Profile
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 4. PATIENT PROFILE & VISIT HISTORY MODAL / DRAWER -->
+  <div id="patient-details-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center text-xl font-bold font-mono">
+            <span id="detail-patient-avatar">PT</span>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 id="detail-patient-name" class="font-bold text-lg text-slate-900">Patient Name</h3>
+              <span id="detail-patient-code" class="text-xs bg-slate-100 text-slate-700 font-mono px-2 py-0.5 rounded-md font-semibold">PT-000</span>
+              <span id="detail-patient-blood" class="text-xs bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded-full">O+</span>
+            </div>
+            <p id="detail-patient-meta" class="text-xs text-slate-500">Age: -- &bull; Gender: -- &bull; Phone: --</p>
+          </div>
+        </div>
+        <button onclick="closeModal('patient-details-modal')" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Quick Info Bar -->
+      <div class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-slate-50 p-3 rounded-xl border border-slate-200">
+        <div>
+          <span class="text-slate-400 block text-[10px]">Emergency Contact:</span>
+          <span id="detail-patient-emg" class="font-semibold text-slate-800">--</span>
+        </div>
+        <div>
+          <span class="text-slate-400 block text-[10px]">Allergies:</span>
+          <span id="detail-patient-allergies" class="font-semibold text-amber-700">None</span>
+        </div>
+        <div>
+          <span class="text-slate-400 block text-[10px]">Conditions:</span>
+          <span id="detail-patient-conditions" class="font-semibold text-slate-800">None</span>
+        </div>
+        <div>
+          <span class="text-slate-400 block text-[10px]">Address:</span>
+          <span id="detail-patient-address" class="font-semibold text-slate-800 truncate block">--</span>
+        </div>
+      </div>
+
+      <!-- Tabs inside Patient Modal: Visit History & Past Appointments -->
+      <div class="mt-6 flex items-center justify-between border-b border-slate-200 pb-2">
+        <h4 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-notes-medical text-sky-600"></i> Clinical Visit History & Records
+        </h4>
+        <button onclick="openAddVisitModal()" class="bg-sky-600 hover:bg-sky-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs">
+          <i class="fa-solid fa-plus"></i> Add Visit Record
+        </button>
+      </div>
+
+      <div class="mt-4 space-y-3" id="patient-visits-container">
+        <!-- Dynamically populated visit history items -->
+      </div>
+
+      <!-- Past Appointments section -->
+      <h4 class="font-bold text-sm text-slate-900 mt-6 mb-2 flex items-center gap-2">
+        <i class="fa-solid fa-calendar-days text-slate-500"></i> Appointment Log
+      </h4>
+      <div class="space-y-2" id="patient-appointments-container">
+        <!-- Dynamically populated -->
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 5. ADD CLINICAL VISIT RECORD MODAL -->
+  <div id="add-visit-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-file-medical text-sky-600"></i> Add Clinical Visit Summary
+        </h3>
+        <button onclick="closeModal('add-visit-modal')" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form onsubmit="handleAddVisitRecord(event)" class="mt-4 space-y-3">
+        <input type="hidden" id="visit-patient-id">
+        <input type="hidden" id="visit-appointment-id">
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Attending Physician <span class="text-red-500">*</span></label>
+            <input type="text" id="visit-doctor-name" required placeholder="Dr. Rajesh Sharma" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Department</label>
+            <input type="text" id="visit-department" placeholder="General Medicine" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Chief Complaint / Reason for Visit</label>
+          <input type="text" id="visit-complaint" placeholder="e.g. Acute sore throat and cough" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Administrative / Care Notes</label>
+          <textarea id="visit-notes" rows="3" placeholder="Summary of consultation, administrative follow-up instructions..." class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Recommended Follow-up Review Date (Optional)</label>
+          <input type="date" id="visit-followup-date" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500">
+          <span class="text-[10px] text-slate-400">If set, an automated WhatsApp follow-up reminder will be scheduled!</span>
+        </div>
+
+        <div class="pt-3 flex gap-2">
+          <button type="button" onclick="closeModal('add-visit-modal')" class="flex-1 py-2 rounded-xl text-xs font-semibold border border-slate-300 text-slate-600 hover:bg-slate-100">Cancel</button>
+          <button type="submit" class="flex-1 py-2 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white shadow-md shadow-sky-500/20">
+            Save Record & Complete
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 6. REQUEST AMBULANCE MODAL -->
+  <div id="request-ambulance-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-truck-medical text-red-600"></i> Request Ambulance Dispatch
+        </h3>
+        <button onclick="closeModal('request-ambulance-modal')" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form onsubmit="handleRequestAmbulance(event)" class="mt-4 space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Caller Name <span class="text-red-500">*</span></label>
+            <input type="text" id="amb-caller-name" required placeholder="Caller full name" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Caller Phone <span class="text-red-500">*</span></label>
+            <input type="text" id="amb-caller-phone" required placeholder="+91 98765..." class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Patient Name (if different)</label>
+          <input type="text" id="amb-patient-name" placeholder="Patient name" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Pickup Address & Landmark <span class="text-red-500">*</span></label>
+          <textarea id="amb-pickup-address" rows="2" required placeholder="Exact street and building name..." class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500"></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Urgency Level</label>
+            <select id="amb-urgency" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500">
+              <option value="Critical / Life-Threatening">Critical / Life-Threatening</option>
+              <option value="High Urgency" selected>High Urgency</option>
+              <option value="Moderate / Transfer">Moderate / Transfer</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Vehicle Type Needed</label>
+            <select id="amb-type-needed" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500">
+              <option value="Advanced Life Support (ALS)">Advanced Life Support (ALS)</option>
+              <option value="Basic Life Support (BLS)" selected>Basic Life Support (BLS)</option>
+              <option value="Patient Transport (PTS)">Patient Transport (PTS)</option>
+              <option value="Neonatal / Pediatric Transport">Neonatal / Pediatric</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Destination Facility</label>
+          <select id="amb-destination" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500">
+            <option value="PulseCare Specialty Clinic & Daycare">PulseCare Specialty Clinic</option>
+            <option value="Manipal Hospital (Old Airport Road)" selected>Manipal Hospital (Old Airport Road)</option>
+            <option value="St. John's Medical College Hospital">St. John's Medical College Hospital</option>
+            <option value="Bowring & Lady Curzon Hospital">Bowring & Lady Curzon Hospital</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Emergency Notes</label>
+          <input type="text" id="amb-notes" placeholder="e.g. Oxygen cylinder required on-board" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500">
+        </div>
+
+        <div class="pt-3 flex gap-2">
+          <button type="button" onclick="closeModal('request-ambulance-modal')" class="flex-1 py-2 rounded-xl text-xs font-semibold border border-slate-300 text-slate-600 hover:bg-slate-100">Cancel</button>
+          <button type="submit" class="flex-1 py-2 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/20">
+            Assign & Dispatch
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 7. POST BLOOD SOS REQUIREMENT MODAL -->
+  <div id="blood-request-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-droplet text-rose-600"></i> Report Urgent Blood Requirement
+        </h3>
+        <button onclick="closeModal('blood-request-modal')" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form onsubmit="handleBloodRequest(event)" class="mt-4 space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Patient Name <span class="text-red-500">*</span></label>
+            <input type="text" id="bld-patient-name" required placeholder="Patient name" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-rose-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Blood Group <span class="text-red-500">*</span></label>
+            <select id="bld-group" required class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-rose-500">
+              <option value="A+">A+</option>
+              <option value="A-">A-</option>
+              <option value="B+">B+</option>
+              <option value="B-">B-</option>
+              <option value="AB+">AB+</option>
+              <option value="AB-">AB-</option>
+              <option value="O+">O+</option>
+              <option value="O-" selected>O-</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Units Required <span class="text-red-500">*</span></label>
+            <input type="number" id="bld-units" required min="1" max="10" value="2" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-rose-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Urgency</label>
+            <select id="bld-urgency" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-rose-500">
+              <option value="Immediate / Trauma">Immediate / Trauma (1 Hr)</option>
+              <option value="Within 4 Hours" selected>Within 4 Hours</option>
+              <option value="Within 24 Hours">Within 24 Hours</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Hospital / Medical Center <span class="text-red-500">*</span></label>
+          <input type="text" id="bld-hospital" required placeholder="e.g. St. Philomena's Hospital" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-rose-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Contact Person <span class="text-red-500">*</span></label>
+            <input type="text" id="bld-contact-person" required placeholder="Attending Doctor / Nurse" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-rose-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Contact Phone <span class="text-red-500">*</span></label>
+            <input type="text" id="bld-contact-phone" required placeholder="+91 98450..." class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-rose-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Clinical Reason</label>
+          <input type="text" id="bld-notes" placeholder="e.g. Emergency surgery / acute bleeding" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-rose-500">
+        </div>
+
+        <div class="pt-3 flex gap-2">
+          <button type="button" onclick="closeModal('blood-request-modal')" class="flex-1 py-2 rounded-xl text-xs font-semibold border border-slate-300 text-slate-600 hover:bg-slate-100">Cancel</button>
+          <button type="submit" class="flex-1 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-500/20">
+            Broadcast Requirement
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 8. REGISTER BLOOD DONOR MODAL -->
+  <div id="blood-donor-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-hand-holding-heart text-rose-500"></i> Register Voluntary Blood Donor
+        </h3>
+        <button onclick="closeModal('blood-donor-modal')" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form onsubmit="handleRegisterDonor(event)" class="mt-4 space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Full Name <span class="text-red-500">*</span></label>
+          <input type="text" id="donor-name" required placeholder="e.g. Vikramaditya Rao" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-rose-500">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Blood Group <span class="text-red-500">*</span></label>
+            <select id="donor-blood" required class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-rose-500">
+              <option value="A+">A+</option>
+              <option value="A-">A-</option>
+              <option value="B+">B+</option>
+              <option value="B-">B-</option>
+              <option value="AB+">AB+</option>
+              <option value="AB-">AB-</option>
+              <option value="O+">O+</option>
+              <option value="O-">O-</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">City</label>
+            <input type="text" id="donor-city" value="Bengaluru" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-rose-500">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Contact Phone <span class="text-red-500">*</span></label>
+          <input type="text" id="donor-phone" required placeholder="+91 99000..." class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-rose-500">
+        </div>
+
+        <div class="pt-3 flex gap-2">
+          <button type="button" onclick="closeModal('blood-donor-modal')" class="flex-1 py-2 rounded-xl text-xs font-semibold border border-slate-300 text-slate-600 hover:bg-slate-100">Cancel</button>
+          <button type="submit" class="flex-1 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-900 text-white">
+            Register Donor
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 9. PRINTABLE APPOINTMENT SLIP MODAL -->
+  <div id="appointment-slip-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+      
+      <!-- Printable Slip Area -->
+      <div id="printable-slip" class="bg-white p-4 border-2 border-dashed border-slate-300 rounded-2xl">
+        <div class="text-center pb-3 border-b border-slate-200">
+          <div class="flex items-center justify-center gap-2 mb-1">
+            <i class="fa-solid fa-heart-pulse text-sky-600 text-xl"></i>
+            <span class="font-extrabold text-base text-slate-900">PulseCare Medical Center</span>
+          </div>
+          <p class="text-[11px] text-slate-500">48 100 Feet Road, HAL 2nd Stage, Indiranagar, Bengaluru</p>
+          <p class="text-[10px] font-mono text-slate-400">Emergency & Appointments: +91 80 4099 1100</p>
+        </div>
+
+        <!-- Token Header Highlight -->
+        <div class="my-4 bg-sky-50 border border-sky-200 rounded-xl p-3 text-center">
+          <span class="text-[11px] font-semibold text-sky-700 uppercase tracking-widest block">Token Number</span>
+          <span id="slip-token" class="text-4xl font-extrabold font-mono text-sky-600 tracking-tight">T-00</span>
+          <span id="slip-code" class="text-[10px] font-mono text-slate-500 block mt-1">APT-2026-000</span>
+        </div>
+
+        <!-- Appointment Details -->
+        <div class="space-y-2 text-xs divide-y divide-slate-100">
+          <div class="pt-1 flex justify-between">
+            <span class="text-slate-400">Patient:</span>
+            <span id="slip-patient" class="font-bold text-slate-800">--</span>
+          </div>
+          <div class="pt-1 flex justify-between">
+            <span class="text-slate-400">Patient Code:</span>
+            <span id="slip-patient-code" class="font-mono text-slate-700">PT-000</span>
+          </div>
+          <div class="pt-1 flex justify-between">
+            <span class="text-slate-400">Doctor:</span>
+            <span id="slip-doctor" class="font-semibold text-slate-800">Dr. --</span>
+          </div>
+          <div class="pt-1 flex justify-between">
+            <span class="text-slate-400">Specialty / Room:</span>
+            <span id="slip-specialty" class="text-slate-700">Room --</span>
+          </div>
+          <div class="pt-1 flex justify-between">
+            <span class="text-slate-400">Date & Slot:</span>
+            <span id="slip-datetime" class="font-bold text-slate-800">--</span>
+          </div>
+          <div class="pt-1 flex justify-between">
+            <span class="text-slate-400">Visit Type:</span>
+            <span id="slip-visit-type" class="text-slate-700">Consultation</span>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-slate-200 text-center">
+          <p class="text-[10px] text-slate-400">Please present this token at the reception desk 10 minutes prior to your time slot.</p>
+        </div>
+      </div>
+
+      <div class="mt-4 flex gap-2 no-print">
+        <button onclick="closeModal('appointment-slip-modal')" class="flex-1 py-2 rounded-xl text-xs font-semibold border border-slate-300 text-slate-600 hover:bg-slate-100">Close</button>
+        <button onclick="window.print()" class="flex-1 py-2 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white shadow-md shadow-sky-500/20">
+          <i class="fa-solid fa-print mr-1"></i> Print Slip
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 10. CREATE REMINDER MODAL -->
+  <div id="create-reminder-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-bell text-amber-500"></i> Set Follow-up Reminder
+        </h3>
+        <button onclick="closeModal('create-reminder-modal')" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form onsubmit="handleCreateReminder(event)" class="mt-4 space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Select Patient <span class="text-red-500">*</span></label>
+          <select id="rem-patient-id" required class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500">
+            <option value="">-- Choose Patient --</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Reminder Date <span class="text-red-500">*</span></label>
+          <input type="date" id="rem-date" required class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Reason for Follow-up <span class="text-red-500">*</span></label>
+          <input type="text" id="rem-reason" required placeholder="e.g. Suture removal / check BP reading" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Notification Channel</label>
+          <select id="rem-channel" class="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500">
+            <option value="WhatsApp" selected>WhatsApp (Direct Link)</option>
+            <option value="SMS">SMS Message</option>
+            <option value="Phone Call">Phone Call</option>
+          </select>
+        </div>
+
+        <div class="pt-3 flex gap-2">
+          <button type="button" onclick="closeModal('create-reminder-modal')" class="flex-1 py-2 rounded-xl text-xs font-semibold border border-slate-300 text-slate-600 hover:bg-slate-100">Cancel</button>
+          <button type="submit" class="flex-1 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 text-slate-900 shadow-md">
+            Schedule Reminder
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- JavaScript Application Logic -->
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

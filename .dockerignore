@@ -1,0 +1,13 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv
+env/
+venv/
+.git
+.gitignore
+.system_generated/
+test_suite.py
+data/*.db-journal
