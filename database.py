@@ -3,7 +3,11 @@ import os
 from contextlib import contextmanager
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.environ.get("DB_PATH", os.path.join(BASE_DIR, "data", "clinic_system.db"))
+if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+    DB_PATH = "/tmp/clinic_system.db"
+else:
+    DB_PATH = os.environ.get("DB_PATH", os.path.join(BASE_DIR, "data", "clinic_system.db"))
+
 
 def get_db_connection():
     """Create a thread-safe database connection returning sqlite3.Row objects."""

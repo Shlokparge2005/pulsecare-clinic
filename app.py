@@ -7,7 +7,10 @@ from flask import Flask, request, jsonify, render_template, Response, make_respo
 from database import init_db, get_db, row_to_dict, rows_to_dict_list
 from seed_data import seed_database_if_empty
 
-app = Flask(__name__)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+app = Flask(__name__,
+            template_folder=os.path.join(BASE_DIR, "templates"),
+            static_folder=os.path.join(BASE_DIR, "static"))
 app.config["JSON_SORT_KEYS"] = False
 
 # Auto-initialize DB and seed if empty on app startup
