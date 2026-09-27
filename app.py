@@ -29,6 +29,8 @@ def health():
     })
 
 @app.route("/")
+@app.route("/api/index")
+@app.route("/api/index.py")
 def index():
     """Render the primary single-page application dashboard."""
     return render_template("index.html")
